@@ -25,4 +25,11 @@ public:
 	~BPFADictionaryLearner();
 	void init(const cv::Mat &Y, const int &K, const int &seed = 0);
 	void train(const int R); // R: number of iteration
+	
+	void sampleD(void);
+	void sampleZ(void);
+	void sampleS(void);
+	void samplePi(void);
+	void sampleGamma_s(void);
+	void sampleGamma_e(void);
 };

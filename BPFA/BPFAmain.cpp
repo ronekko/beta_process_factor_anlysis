@@ -131,15 +131,6 @@ cv::Mat patchesToImage(const cv::Mat &patches, const int &width)
 
 
 
-cv::Mat patchesToDictionaryImage(const cv::Mat &patches, const int &width)
-{
-
-
-}
-
-
-
-
 
 
 

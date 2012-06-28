@@ -43,5 +43,81 @@ void BPFADictionaryLearner::train(const int iteration)
 {
 	for(int t=0; t<iteration; ++t)
 	{
-	}	
+	}
+	sampleD();
+	sampleZ();
+	sampleS();
+	samplePi();
+	sampleGamma_s();
+	sampleGamma_e();
+}
+
+void BPFADictionaryLearner::sampleD(void)
+{
+	cv::Mat X;
+	cv::multiply(Z, S, X);
+	cv::Mat E = Y - D * X;
+
+	for(int k=0; k<K; ++k){
+		cv::Mat x_k = X.row(k);
+		cv::Mat d_k = D.col(k);
+		double x_k_square = cv::Mat(x_k * x_k.t()).at<double>(0, 0);
+		double variance = 1.0 / (M + gamma_e * x_k_square);
+		int N_nonzero = cv::countNonZero(x_k);
+		
+		vector<int> omega;
+		omega.reserve(N_nonzero);
+		for(int i=0; i<N; ++i){
+			if(x_k.at<double>(0, i) != 0.0){
+				omega.push_back(i);
+			}
+		}
+		
+		cv::Mat E_k = E + d_k * x_k;
+		cv::Mat mean = (gamma_e * variance) * (E_k * x_k.t());
+//		cv::Mat mean = (gamma_e * variance) * (E * x_k.t() + d_k * x_k_square);
+
+		double stddev = sqrt(variance);
+		cv::Mat sample(d_k.size(), d_k.type());
+		for(int m=0; m<M; ++m){
+			double d_km = boost::normal_distribution<>(mean.at<double>(m, 0), stddev)(engine);
+			sample.at<double>(m, 0) = d_km;
+		}
+		sample.copyTo(d_k);
+
+		E = E_k - d_k * x_k;
+	}
+}
+
+
+
+void BPFADictionaryLearner::sampleZ(void)
+{
+	cv::Mat X;
+	cv::multiply(Z, S, X);
+	cv::Mat E = Y - D * X;
+
+	for(int k=0; k<K; ++k){
+		cv::Mat d_k = D.col(k);
+		double d_k_square = cv::Mat(d_k.t() * d_k).at<double>(0, 0);
+
+		for(int i=0; i<N; ++i){
+		}
+	}
+
+}
+
+
+
+void BPFADictionaryLearner::sampleS(void)
+{
+}
+void BPFADictionaryLearner::samplePi(void)
+{
+}
+void BPFADictionaryLearner::sampleGamma_s(void)
+{
+}
+void BPFADictionaryLearner::sampleGamma_e(void)
+{
 }
