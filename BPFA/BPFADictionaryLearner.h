@@ -18,6 +18,7 @@ public:
 	int K;		// number of dictionary atoms
 	int M;		// dimension of data
 	int N;		// number of samples
+	double a, b; // hyperparameter for pi
 	cv::Mat X;
 	boost::random::mt19937 engine;
 
@@ -32,4 +33,5 @@ public:
 	void samplePi(void);
 	void sampleGamma_s(void);
 	void sampleGamma_e(void);
+	double betaRandom(boost::mt19937 &engine, const double &alpha, const double &beta);
 };
