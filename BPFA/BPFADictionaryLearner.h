@@ -13,14 +13,17 @@ public:
 	cv::Mat Z;
 	cv::Mat S;
 	std::vector<double> pi;
-	double gamma_e;
 	double gamma_s;
+	double gamma_e;
 	int K;		// number of dictionary atoms
 	int M;		// dimension of data
 	int N;		// number of samples
 	double a, b; // hyperparameter for pi
+	double c, d; // hyperparameter for gamma_s
+	double e, f; // hyperparameter for gamma_e
 	cv::Mat X;
 	boost::random::mt19937 engine;
+	int round;
 
 	BPFADictionaryLearner();
 	~BPFADictionaryLearner();
