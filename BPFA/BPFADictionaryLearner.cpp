@@ -21,7 +21,6 @@ double BPFADictionaryLearner::betaRandom(boost::mt19937 &engine, const double &a
 
 void BPFADictionaryLearner::init(const cv::Mat &_Y, const int &_K, const int &seed)
 {
-	round = 0;
 	this->K = _K;
 	this->M = _Y.rows;
 	this->N = _Y.cols;
@@ -48,13 +47,14 @@ void BPFADictionaryLearner::init(const cv::Mat &_Y, const int &_K, const int &se
 	}
 
 	pi.resize(K);
-	cout << b*(K-1)/K << endl;
 	for(int k=0; k<K; ++k){
 		pi[k] = betaRandom(engine, a/K, b*(K-1)/K);
 	};
 	
-	gamma_s = boost::gamma_distribution<>(1.0/c, d)(engine);
-	gamma_e = boost::gamma_distribution<>(1.0/c, d)(engine);
+//	gamma_s = boost::gamma_distribution<>(c, 1.0/d)(engine);
+//	gamma_e = boost::gamma_distribution<>(e, 1.0/f)(engine);
+	gamma_s = 1.0;
+	gamma_e = 1.0;
 
 	cout << "K: " << K << endl
 		 << "M: " << M << endl
@@ -69,18 +69,16 @@ void BPFADictionaryLearner::train(const int iteration)
 	for(int t=0; t<iteration; ++t)
 	{
 	}
-	cout << "sample D" << endl; sampleD(); 
+	cout << "sample D" << endl; sampleD();
+	cout << "sample Pi" << endl; samplePi(); 
 	cout << "sample Z" << endl; sampleZ();
 	cout << "sample S" << endl; sampleS();
-	cout << "sample Pi" << endl; samplePi();
-	cout << "sample Gamma_s" << endl; sampleGamma_s();
-	cout << "sample Gamma_e" << endl; sampleGamma_e();
-	round++;
+	cout << "sample Gamma_s: "; sampleGamma_s(); cout << gamma_s << endl;
+	cout << "sample Gamma_e: "; sampleGamma_e(); cout << gamma_e << endl;
 }
 
 void BPFADictionaryLearner::sampleD(void)
 {
-	cv::Mat X;
 	cv::multiply(Z, S, X);
 	cv::Mat E = Y - D * X;
 
@@ -120,7 +118,6 @@ void BPFADictionaryLearner::sampleD(void)
 
 void BPFADictionaryLearner::sampleZ(void)
 {
-	cv::Mat X;
 	cv::multiply(Z, S, X);
 	cv::Mat E = Y - D * X;
 
@@ -134,9 +131,7 @@ void BPFADictionaryLearner::sampleZ(void)
 		cv::Mat sample(x_k.size(), x_k.type());
 		for(int i=0; i<N; ++i){
 			double s_ik = S.at<double>(k, i);
-			double dkTEki2 = cv::Mat(d_k.t() * E_k.col(i)).at<double>(0, 0);
 			double dkTEki = dkTEk.at<double>(0, i);
-//if(dkTEki2 != dkTEki){cout <<dkTEki2 << endl << dkTEki << endl<<endl;}
 			double p1 = pi[k] * exp(-gamma_e / 2 * (s_ik * s_ik * d_k_square - 2 * s_ik * dkTEki));
 			double p0 = 1 - pi[k];
 			int z_ki = boost::bernoulli_distribution<>(p1 / (p0 + p1))(engine);
@@ -155,7 +150,6 @@ void BPFADictionaryLearner::sampleZ(void)
 
 void BPFADictionaryLearner::sampleS(void)
 {
-	cv::Mat X;
 	cv::multiply(Z, S, X);
 	cv::Mat E = Y - D * X;
 	
@@ -200,10 +194,33 @@ void BPFADictionaryLearner::sampleS(void)
 
 void BPFADictionaryLearner::samplePi(void)
 {
+	for(int k=0; k<K; ++k){
+		int num_ones = cv::countNonZero(Z.row(k));
+		cout << num_ones << " ";
+		pi[k] = betaRandom(engine, a/K + num_ones, b*(K-1)/K + N - num_ones);
+	}
+	cout << endl;
 }
+
+
+
 void BPFADictionaryLearner::sampleGamma_s(void)
 {
+	double s_ki_sqsum = S.dot(S); // \sum_i \sum_k S_{ik}^2
+	double shape = c + K * N / 2.0;
+	double scale = 1.0 / (d + s_ki_sqsum / 2.0);
+	//cout << "\tshape_s: " << shape << ", scale_s: " << scale << endl;
+	gamma_s = boost::gamma_distribution<>(shape, scale)(engine);
 }
+
+
+
 void BPFADictionaryLearner::sampleGamma_e(void)
 {
+	cv::Mat E = Y - D * X;
+	double e_mn_sqsum = E.dot(E);
+	double shape = e + M * N / 2.0;
+	double scale = 1.0 / (f + e_mn_sqsum / 2.0);
+	//cout << "\tshape_e: " << shape << ", scale_e: " << scale << endl;
+	gamma_e = boost::gamma_distribution<>(shape, scale)(engine);
 }

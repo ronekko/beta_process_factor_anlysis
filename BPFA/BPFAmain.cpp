@@ -229,17 +229,22 @@ void runKSVDForGrayscaleImage(const string &filename)
 	cv::Mat Y = patches;
 	BPFADictionaryLearner dictionaryLearner;
 	cout << "init" << endl;
-	dictionaryLearner.init(Y, K);
+	dictionaryLearner.init(Y, K, time(0));
 
 	for(int i=0; i<200; ++i){
 		cout << endl <<  "round " << i << endl;
 		dictionaryLearner.train(1);
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
-		imshow("sc", patchesToImage(resultPatches, image.cols));
+		cv::Mat resultImage = patchesToImage(resultPatches, image.cols);
+		imshow("sc", resultImage);
 
 		cv::Mat resultDictionary = dictionaryLearner.D + 0.5;
 		imshow("D", patchesToImage(resultDictionary, patch_size*sqrt(static_cast<double>(K))));
+
+		cv::Mat residualImage = image - resultImage;
+		imshow("residual", residualImage + 0.5);
+		cout << "error = " << residualImage.dot(residualImage) << endl;
 		waitKey(1);
 	}
 }
@@ -276,12 +281,18 @@ void runKSVDForColorImage(const string &filename)
 		dictionaryLearner.train(1);
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
-		imshow("sc", colorPatchesToImage(resultPatches, image.cols));
-		waitKey(10);
+		cv::Mat resultImage = colorPatchesToImage(resultPatches, image.cols);
+		imshow("sc", resultImage);
+		waitKey(1);
 
 		cv::Mat resultDictionary = dictionaryLearner.D + 0.5;
 		imshow("D", colorPatchesToImage(resultDictionary, patch_size*sqrt(static_cast<double>(K))));
-		waitKey(10);
+		waitKey(1);
+
+		cv::Mat residualImage = image - resultImage;
+		imshow("residual", residualImage + cv::Scalar(0.5, 0.5, 0.5));
+		cout << "error = " << residualImage.dot(residualImage) << endl;
+		waitKey(1);
 	}
 }
 
@@ -318,10 +329,17 @@ void runKSVDDenoiseGrayscaleImage(const string &filename)
 		dictionaryLearner.train(1);
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
-		imshow("sc", densePatchesToImage(resultPatches, image.cols));
+		cv::Mat resultImage = densePatchesToImage(resultPatches, image.cols);
+		imshow("sc", resultImage);
+		waitKey(1);
 
 		cv::Mat resultDictionary = dictionaryLearner.D + 0.5;
 		imshow("D", patchesToImage(resultDictionary, patch_size*sqrt(static_cast<double>(K))));
+		waitKey(1);
+
+		cv::Mat residualImage = image - resultImage;
+		imshow("residual", residualImage + 0.5);
+		cout << "error = " << residualImage.dot(residualImage) << endl;
 		waitKey(1);
 	}
 }

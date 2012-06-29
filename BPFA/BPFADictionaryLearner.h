@@ -23,7 +23,6 @@ public:
 	double e, f; // hyperparameter for gamma_e
 	cv::Mat X;
 	boost::random::mt19937 engine;
-	int round;
 
 	BPFADictionaryLearner();
 	~BPFADictionaryLearner();
