@@ -229,7 +229,8 @@ void runKSVDForGrayscaleImage(const string &filename)
 	cv::Mat Y = patches;
 	BPFADictionaryLearner dictionaryLearner;
 	cout << "init" << endl;
-	dictionaryLearner.init(Y, K, time(0));
+//	dictionaryLearner.init(Y, K, time(0));
+	dictionaryLearner.init(Y, K, 0);
 
 	for(int i=0; i<200; ++i){
 		cout << endl <<  "round " << i << endl;

@@ -85,7 +85,7 @@ void BPFADictionaryLearner::sampleD(void)
 	for(int k=0; k<K; ++k){
 		cv::Mat x_k = X.row(k);
 		cv::Mat d_k = D.col(k);
-		double x_k_square = cv::Mat(x_k * x_k.t()).at<double>(0, 0);
+		double x_k_square = x_k.dot(x_k);
 		double variance = 1.0 / (M + gamma_e * x_k_square);
 		int N_nonzero = cv::countNonZero(x_k);
 		
@@ -124,7 +124,7 @@ void BPFADictionaryLearner::sampleZ(void)
 	for(int k=0; k<K; ++k){
 		cv::Mat x_k = X.row(k);
 		cv::Mat d_k = D.col(k);
-		double d_k_square = cv::Mat(d_k.t() * d_k).at<double>(0, 0);
+		double d_k_square = d_k.dot(d_k);
 		cv::Mat E_k = E + d_k * x_k;
 		cv::Mat dkTEk = d_k.t() * E_k;
 		
@@ -159,7 +159,7 @@ void BPFADictionaryLearner::sampleS(void)
 		cv::Mat z_k = Z.row(k);
 		cv::Mat E_k = E + d_k * x_k;
 		cv::Mat dkTEk = d_k.t() * E_k;
-		double d_k_square = cv::Mat(d_k.t() * d_k).at<double>(0, 0);
+		double d_k_square = d_k.dot(d_k);
 
 		double variance0 = 1.0 / gamma_s;
 		double variance1 = 1.0 / (gamma_s + gamma_e * d_k_square);
@@ -196,10 +196,8 @@ void BPFADictionaryLearner::samplePi(void)
 {
 	for(int k=0; k<K; ++k){
 		int num_ones = cv::countNonZero(Z.row(k));
-		cout << num_ones << " ";
 		pi[k] = betaRandom(engine, a/K + num_ones, b*(K-1)/K + N - num_ones);
 	}
-	cout << endl;
 }
 
 
