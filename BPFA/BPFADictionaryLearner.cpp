@@ -134,7 +134,9 @@ void BPFADictionaryLearner::sampleZ(void)
 			double dkTEki = dkTEk.at<double>(0, i);
 			double p1 = pi[k] * exp(-gamma_e / 2 * (s_ik * s_ik * d_k_square - 2 * s_ik * dkTEki));
 			double p0 = 1 - pi[k];
-			int z_ki = boost::bernoulli_distribution<>(p1 / (p0 + p1))(engine);
+			double p = p1 / (p0 + p1);
+			int z_ki = (p1 == std::numeric_limits<double>().infinity()) ? 1
+																		: boost::bernoulli_distribution<>(p)(engine);
 			sample.at<double>(0, i) = z_ki;
 		}
 		sample.copyTo(Z.row(k));
