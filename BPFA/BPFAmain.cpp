@@ -217,8 +217,8 @@ void runKSVDForGrayscaleImage(const string &filename)
 	cv::Mat image = cv::imread(filename, 0);
 	image.convertTo(image, CV_64FC1, 1.0/256.0);
 	cv::Mat noise(image.rows, image.cols, CV_64FC1);
-	cv::randn(noise, cv::Scalar(0), cv::Scalar(10));
-	//image += noise / 256.0;
+	cv::randn(noise, cv::Scalar(0), cv::Scalar(20.0/256.0));
+	//image += noise;
 	const int patch_size = 8;
 	cv::Mat patches = imageToPatches(image, patch_size);
 	imshow("original", image);
@@ -245,7 +245,10 @@ void runKSVDForGrayscaleImage(const string &filename)
 
 		cv::Mat residualImage = image - resultImage;
 		imshow("residual", residualImage + 0.5);
+		cout << "countNonZero(Z) = " << dictionaryLearner.Z.dot(dictionaryLearner.Z) << endl;
 		cout << "error = " << residualImage.dot(residualImage) << endl;
+		cout << "noise stddev = " << sqrt(1.0 / dictionaryLearner.gamma_e) *256 << endl;
+
 		waitKey(1);
 	}
 }
@@ -263,8 +266,8 @@ void runKSVDForColorImage(const string &filename)
 	cv::Mat image = cv::imread(filename, 1);
 	image.convertTo(image, CV_64FC3, 1.0/256.0);
 	cv::Mat noise(image.rows, image.cols, CV_64FC3);
-	cv::randn(noise, cv::Scalar(0), cv::Scalar(10));
-	//image += noise / 64.0;
+	cv::randn(noise.reshape(1), cv::Scalar(0), cv::Scalar(10.0/256.0));
+	//image += noise;
 	const int patch_size = 8;
 	cv::Mat patches = colorImageToPatches(image, patch_size);
 	imshow("original", image);
@@ -292,7 +295,9 @@ void runKSVDForColorImage(const string &filename)
 
 		cv::Mat residualImage = image - resultImage;
 		imshow("residual", residualImage + cv::Scalar(0.5, 0.5, 0.5));
+		cout << "countNonZero(Z) = " << dictionaryLearner.Z.dot(dictionaryLearner.Z) << endl;
 		cout << "error = " << residualImage.dot(residualImage) << endl;
+		cout << "noise stddev = " << sqrt(1.0 / dictionaryLearner.gamma_e) *256 << endl;
 		waitKey(1);
 	}
 }
@@ -310,8 +315,8 @@ void runKSVDDenoiseGrayscaleImage(const string &filename)
 	cv::Mat image = cv::imread(filename, 0);
 	image.convertTo(image, CV_64FC1, 1.0/256.0);
 	cv::Mat noise(image.rows, image.cols, CV_64FC1);
-	cv::randn(noise, cv::Scalar(0), cv::Scalar(10));
-	cv::Mat noisyImage = image + noise / 256.0;
+	cv::randn(noise, cv::Scalar(0), cv::Scalar(20.0/256.0));
+	cv::Mat noisyImage = image + noise;
 	const int patch_size = 8;
 	cv::Mat patches = imageToDensePatches(noisyImage, patch_size);
 	imshow("original", image);
@@ -340,7 +345,9 @@ void runKSVDDenoiseGrayscaleImage(const string &filename)
 
 		cv::Mat residualImage = image - resultImage;
 		imshow("residual", residualImage + 0.5);
+		cout << "countNonZero(Z) = " << dictionaryLearner.Z.dot(dictionaryLearner.Z) << endl;
 		cout << "error = " << residualImage.dot(residualImage) << endl;
+		cout << "noise stddev = " << sqrt(1.0 / dictionaryLearner.gamma_e) *256 << endl;
 		waitKey(1);
 	}
 }

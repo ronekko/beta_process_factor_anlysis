@@ -68,13 +68,15 @@ void BPFADictionaryLearner::train(const int iteration)
 {
 	for(int t=0; t<iteration; ++t)
 	{
+		cout << "sample ";
+		sampleD();	cout << "D ";
+		samplePi();	cout << "Pi ";
+		sampleZ();	cout << "Z ";
+		sampleS();	cout << "S ";
+		cout << endl;
+		sampleGamma_s(); cout << "sample Gamma_s: " << gamma_s << endl;
+		sampleGamma_e(); cout << "sample Gamma_e: " << gamma_e << endl;
 	}
-	cout << "sample D" << endl; sampleD();
-	cout << "sample Pi" << endl; samplePi(); 
-	cout << "sample Z" << endl; sampleZ();
-	cout << "sample S" << endl; sampleS();
-	cout << "sample Gamma_s: "; sampleGamma_s(); cout << gamma_s << endl;
-	cout << "sample Gamma_e: "; sampleGamma_e(); cout << gamma_e << endl;
 }
 
 void BPFADictionaryLearner::sampleD(void)
@@ -107,7 +109,6 @@ void BPFADictionaryLearner::sampleD(void)
 			double d_km = boost::normal_distribution<>(mean.at<double>(m, 0), stddev)(engine);
 			sample.at<double>(m, 0) = d_km;
 		}
-//if(round>0){cout<<sample<<endl<<endl;}
 		sample.copyTo(d_k);
 
 		E = E_k - d_k * x_k;
