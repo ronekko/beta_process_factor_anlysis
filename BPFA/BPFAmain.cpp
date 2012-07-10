@@ -226,21 +226,45 @@ void runKSVDForGrayscaleImage(const string &filename)
 
 	const int K = 256;
 	const int n = patches.cols; //patch_size * patch_size
+	vector<double> offsets(patches.cols);
+	for(int i=0; i<patches.cols; ++i){
+		cv::Mat patch = patches.col(i);
+		offsets[i] = cv::mean(patch)(0);
+		patch -= offsets[i];
+	}
 	cv::Mat Y = patches;
 	BPFADictionaryLearner dictionaryLearner;
 	cout << "init" << endl;
 //	dictionaryLearner.init(Y, K, time(0));
 	dictionaryLearner.init(Y, K, 0);
 
-	for(int i=0; i<200; ++i){
+	for(int i=0; i<20000; ++i){
 		cout << endl <<  "round " << i << endl;
 		dictionaryLearner.train(1);
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
+		for(int i=0; i<patches.cols; ++i){
+			cv::Mat patch = resultPatches.col(i);
+			patch += offsets[i];
+		}
 		cv::Mat resultImage = patchesToImage(resultPatches, image.cols);
 		imshow("sc", resultImage);
 
 		cv::Mat resultDictionary = dictionaryLearner.D + 0.5;
+		{
+			vector<pair<double, cv::Mat>> col(K);
+			for(int k=0; k<K; ++k){
+				col[k] = make_pair<double, cv::Mat>(dictionaryLearner.pi[k], resultDictionary.col(k).clone());
+			}
+			//cout << pi / cv::norm(pi, CV_L1) << endl;
+			boost::sort(col, [](pair<double,cv::Mat> a1, pair<double,cv::Mat> a2){
+				return a1.first > a2.first;
+			});
+			for(int k=0; k<K; ++k){
+				//cout << col[k].first << endl;
+				col[k].second.copyTo(resultDictionary.col(k));
+			}
+		}
 		imshow("D", patchesToImage(resultDictionary, patch_size*sqrt(static_cast<double>(K))));
 
 		cv::Mat residualImage = image - resultImage;
@@ -250,6 +274,7 @@ void runKSVDForGrayscaleImage(const string &filename)
 		cout << "noise stddev = " << sqrt(1.0 / dictionaryLearner.gamma_e) *256 << endl;
 
 		waitKey(1);
+
 	}
 }
 
@@ -275,6 +300,12 @@ void runKSVDForColorImage(const string &filename)
 
 	const int K = 256;
 	const int n = patches.rows; //patch_size * patch_size
+	vector<double> offsets(patches.cols);
+	for(int i=0; i<patches.cols; ++i){
+		cv::Mat patch = patches.col(i);
+		offsets[i] = cv::mean(patch)(0);
+		patch -= offsets[i];
+	}
 	cv::Mat Y = patches;
 	BPFADictionaryLearner dictionaryLearner;
 	cout << "init" << endl;
@@ -285,11 +316,29 @@ void runKSVDForColorImage(const string &filename)
 		dictionaryLearner.train(1);
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
+		for(int i=0; i<patches.cols; ++i){
+			cv::Mat patch = resultPatches.col(i);
+			patch += offsets[i];
+		}
 		cv::Mat resultImage = colorPatchesToImage(resultPatches, image.cols);
 		imshow("sc", resultImage);
 		waitKey(1);
-
-		cv::Mat resultDictionary = dictionaryLearner.D + 0.5;
+		
+		cv::Mat resultDictionary = dictionaryLearner.D*4.0 + 0.5;
+		{
+			vector<pair<double, cv::Mat>> col(K);
+			for(int k=0; k<K; ++k){
+				col[k] = make_pair<double, cv::Mat>(dictionaryLearner.pi[k], resultDictionary.col(k).clone());
+			}
+			//cout << pi / cv::norm(pi, CV_L1) << endl;
+			boost::sort(col, [](pair<double,cv::Mat> a1, pair<double,cv::Mat> a2){
+				return a1.first > a2.first;
+			});
+			for(int k=0; k<K; ++k){
+				//cout << col[k].first << endl;
+				col[k].second.copyTo(resultDictionary.col(k));
+			}
+		}
 		imshow("D", colorPatchesToImage(resultDictionary, patch_size*sqrt(static_cast<double>(K))));
 		waitKey(1);
 
@@ -365,8 +414,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	const string filename = "barbara.jpg";
 	//const string filename = "castle.png";
 
-	runKSVDForGrayscaleImage(filename);
-	//runKSVDForColorImage(filename); 
+	//runKSVDForGrayscaleImage(filename);
+	runKSVDForColorImage(filename); 
 	//runKSVDDenoiseGrayscaleImage(filename);
 
 	waitKey();
