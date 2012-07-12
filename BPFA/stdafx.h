@@ -35,7 +35,6 @@
 #include <map>
 #include <utility>
 #include <memory>
-#include <random>
 #include <typeinfo>
 
 #include "direct.h"
@@ -46,6 +45,7 @@
 #include <boost/range/algorithm_ext.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/timer.hpp>
+#include <boost/math/distributions.hpp>
 #include <boost/math/constants/constants.hpp>
 #include <boost/math/special_functions.hpp>
 #include <boost/random.hpp>

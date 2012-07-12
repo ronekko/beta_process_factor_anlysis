@@ -14,9 +14,8 @@ BPFADictionaryLearner::~BPFADictionaryLearner(){}
 
 double BPFADictionaryLearner::betaRandom(boost::mt19937 &engine, const double &alpha, const double &beta)
 {
-	double x = boost::gamma_distribution<>(alpha, 1.0)(engine);
-	double y = boost::gamma_distribution<>(beta, 1.0)(engine);
-	return x / (x + y);
+	boost::math::beta_distribution<> dist(alpha, beta);
+	return boost::math::quantile(dist, boost::uniform_01<>()(engine));
 }
 
 void BPFADictionaryLearner::init(const cv::Mat &_Y, const int &_K, const int &seed)
@@ -133,11 +132,20 @@ void BPFADictionaryLearner::sampleZ(void)
 		for(int i=0; i<N; ++i){
 			double s_ik = S.at<double>(k, i);
 			double dkTEki = dkTEk.at<double>(0, i);
-			double p1 = pi[k] * exp(-gamma_e / 2 * (s_ik * s_ik * d_k_square - 2 * s_ik * dkTEki));
-			double p0 = 1 - pi[k];
-			double p = p1 / (p0 + p1);
-			int z_ki = (p1 == std::numeric_limits<double>().infinity()) ? 1
-																		: boost::bernoulli_distribution<>(p)(engine);
+			int z_ki;
+			double exponent = -gamma_e / 2 * (s_ik * s_ik * d_k_square - 2 * s_ik * dkTEki);
+			if(exponent > 700.0){ // In this case p will be almost 1. 
+				z_ki = 1;
+			}
+			else if(exponent < -700.0){ // the case p will be almost 0
+				z_ki = 0;
+			}
+			else{
+				double p1 = pi[k] * exp(exponent);
+				double p0 = 1 - pi[k];
+				double p = p1 / (p0 + p1);
+				z_ki = boost::bernoulli_distribution<>(p)(engine);
+			}
 			sample.at<double>(0, i) = z_ki;
 		}
 		sample.copyTo(Z.row(k));
@@ -211,7 +219,8 @@ void BPFADictionaryLearner::sampleGamma_s(void)
 	double shape = c + K * N / 2.0;
 	double scale = 1.0 / (d + s_ki_sqsum / 2.0);
 	//cout << "\tshape_s: " << shape << ", scale_s: " << scale << endl;
-	gamma_s = boost::gamma_distribution<>(shape, scale)(engine);
+	boost::math::gamma_distribution<> dist(shape, scale);
+	gamma_s = boost::math::quantile(dist, boost::uniform_01<>()(engine));
 }
 
 
@@ -223,5 +232,6 @@ void BPFADictionaryLearner::sampleGamma_e(void)
 	double shape = e + M * N / 2.0;
 	double scale = 1.0 / (f + e_mn_sqsum / 2.0);
 	//cout << "\tshape_e: " << shape << ", scale_e: " << scale << endl;
-	gamma_e = boost::gamma_distribution<>(shape, scale)(engine);
+	boost::math::gamma_distribution<> dist(shape, scale);
+	gamma_e = boost::math::quantile(dist, boost::uniform_01<>()(engine));
 }

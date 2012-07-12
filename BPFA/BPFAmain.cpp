@@ -8,6 +8,9 @@ using namespace std;
 using namespace boost;
 using namespace cv;
 
+// For detection of floating-point exception (e.g. overflow or underflow)
+// http://stackoverflow.com/questions/4454582/visual-studio-c-2008-2010-break-on-float-nan
+unsigned int fp_control_state = _controlfp(_EM_INEXACT, _MCW_EM);
 
 cv::Mat imageToPatches(const cv::Mat &image, const int &patch_size)
 {
@@ -238,9 +241,11 @@ void runKSVDForGrayscaleImage(const string &filename)
 //	dictionaryLearner.init(Y, K, time(0));
 	dictionaryLearner.init(Y, K, 0);
 
-	for(int i=0; i<20000; ++i){
+	for(int i=0; i<500; ++i){
 		cout << endl <<  "round " << i << endl;
+		boost::timer timer;
 		dictionaryLearner.train(1);
+		cout << "time: " << timer.elapsed() << endl;
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
 		for(int i=0; i<patches.cols; ++i){
@@ -311,9 +316,11 @@ void runKSVDForColorImage(const string &filename)
 	cout << "init" << endl;
 	dictionaryLearner.init(Y, K);
 
-	for(int i=0; i<200; ++i){
+	for(int i=0; i<500; ++i){
 		cout << endl <<  "round " << i << endl;
+		boost::timer timer;
 		dictionaryLearner.train(1);
+		cout << "time: " << timer.elapsed() << endl;
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
 		for(int i=0; i<patches.cols; ++i){
@@ -381,7 +388,9 @@ void runKSVDDenoiseGrayscaleImage(const string &filename)
 
 	for(int i=0; i<200; ++i){
 		cout << endl <<  "round " << i << endl;
+		boost::timer timer;
 		dictionaryLearner.train(1);
+		cout << "time: " << timer.elapsed() << endl;
 
 		cv::Mat resultPatches = dictionaryLearner.D * dictionaryLearner.X;
 		cv::Mat resultImage = densePatchesToImage(resultPatches, image.cols);
@@ -414,8 +423,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	const string filename = "barbara.jpg";
 	//const string filename = "castle.png";
 
-	//runKSVDForGrayscaleImage(filename);
-	runKSVDForColorImage(filename); 
+	runKSVDForGrayscaleImage(filename);
+	//runKSVDForColorImage(filename); 
 	//runKSVDDenoiseGrayscaleImage(filename);
 
 	waitKey();
