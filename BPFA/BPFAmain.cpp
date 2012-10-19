@@ -80,7 +80,7 @@ cv::Mat colorImageToPatches(const cv::Mat &image, const int &patch_size)
 	int wp = w / l;	// number of patches in a horizontal direction
 	int hp = h / l;	// number of patches in a vertical direction
 	int num_patches = wp * hp;
-	vector<cv::Mat> channels;
+	vector<cv::Mat> channels(3);
 	cv::split(image, channels);
 	cv::Mat patches(l*l*3, num_patches, CV_64FC1);
 
@@ -259,7 +259,7 @@ void runKSVDForGrayscaleImage(const string &filename)
 		{
 			vector<pair<double, cv::Mat>> col(K);
 			for(int k=0; k<K; ++k){
-				col[k] = make_pair<double, cv::Mat>(dictionaryLearner.pi[k], resultDictionary.col(k).clone());
+				col[k] = make_pair(dictionaryLearner.pi[k], resultDictionary.col(k).clone());
 			}
 			//cout << pi / cv::norm(pi, CV_L1) << endl;
 			boost::sort(col, [](pair<double,cv::Mat> a1, pair<double,cv::Mat> a2){
@@ -335,7 +335,7 @@ void runKSVDForColorImage(const string &filename)
 		{
 			vector<pair<double, cv::Mat>> col(K);
 			for(int k=0; k<K; ++k){
-				col[k] = make_pair<double, cv::Mat>(dictionaryLearner.pi[k], resultDictionary.col(k).clone());
+				col[k] = make_pair(dictionaryLearner.pi[k], resultDictionary.col(k).clone());
 			}
 			//cout << pi / cv::norm(pi, CV_L1) << endl;
 			boost::sort(col, [](pair<double,cv::Mat> a1, pair<double,cv::Mat> a2){
@@ -423,8 +423,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	const string filename = "barbara.jpg";
 	//const string filename = "castle.png";
 
-	runKSVDForGrayscaleImage(filename);
-	//runKSVDForColorImage(filename); 
+	//runKSVDForGrayscaleImage(filename);
+	runKSVDForColorImage(filename); 
 	//runKSVDDenoiseGrayscaleImage(filename);
 
 	waitKey();

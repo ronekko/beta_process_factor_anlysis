@@ -21,6 +21,7 @@ public:
 	double a, b; // hyperparameter for pi
 	double c, d; // hyperparameter for gamma_s
 	double e, f; // hyperparameter for gamma_e
+	cv::Mat E;
 	cv::Mat X;
 	boost::random::mt19937 engine;
 

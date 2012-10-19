@@ -55,8 +55,4 @@
 #include <boost/program_options.hpp>
 #include <boost/chrono.hpp>
 
-#include <Eigen/Core>
-//#include <Eigen/SVD>
-
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/eigen.hpp>

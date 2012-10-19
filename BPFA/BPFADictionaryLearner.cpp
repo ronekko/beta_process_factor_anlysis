@@ -45,6 +45,7 @@ void BPFADictionaryLearner::init(const cv::Mat &_Y, const int &_K, const int &se
 		D.col(j) /= l2norm;
 	}
 
+
 	pi.resize(K);
 	for(int k=0; k<K; ++k){
 		pi[k] = betaRandom(engine, a/K, b*(K-1)/K);
@@ -65,6 +66,7 @@ void BPFADictionaryLearner::init(const cv::Mat &_Y, const int &_K, const int &se
 
 void BPFADictionaryLearner::train(const int iteration)
 {
+	E = Y - D * X;
 	for(int t=0; t<iteration; ++t)
 	{
 		cout << "sample ";
@@ -81,36 +83,39 @@ void BPFADictionaryLearner::train(const int iteration)
 void BPFADictionaryLearner::sampleD(void)
 {
 	cv::multiply(Z, S, X);
-	cv::Mat E = Y - D * X;
+	//E = Y - D * X;
 
 	for(int k=0; k<K; ++k){
 		cv::Mat x_k = X.row(k);
-		cv::Mat d_k = D.col(k);
+		cv::Mat d_k_old = D.col(k);
+		cv::Mat z_k = Z.row(k);
 		double x_k_square = x_k.dot(x_k);
 		double variance = 1.0 / (M + gamma_e * x_k_square);
-		int N_nonzero = cv::countNonZero(x_k);
 		
-		vector<int> omega;
-		omega.reserve(N_nonzero);
+		cv::Mat Exk_dkxkxk = cv::Mat::zeros(M, 1, E.type());
 		for(int i=0; i<N; ++i){
-			if(x_k.at<double>(0, i) != 0.0){
-				omega.push_back(i);
+			if(z_k.at<double>(0, i) == 1.0){
+				double x_ki = x_k.at<double>(0, i);
+				Exk_dkxkxk += (E.col(i) + d_k_old * x_ki) * x_ki;
 			}
 		}
-		
-		cv::Mat E_k = E + d_k * x_k;
-		cv::Mat mean = (gamma_e * variance) * (E_k * x_k.t());
 //		cv::Mat mean = (gamma_e * variance) * (E * x_k.t() + d_k * x_k_square);
+		cv::Mat mean = (gamma_e * variance) * Exk_dkxkxk;
+
 
 		double stddev = sqrt(variance);
-		cv::Mat sample(d_k.size(), d_k.type());
+		cv::Mat d_k_new(d_k_old.size(), d_k_old.type());
 		for(int m=0; m<M; ++m){
 			double d_km = boost::normal_distribution<>(mean.at<double>(m, 0), stddev)(engine);
-			sample.at<double>(m, 0) = d_km;
+			d_k_new.at<double>(m, 0) = d_km;
 		}
-		sample.copyTo(d_k);
-
-		E = E_k - d_k * x_k;
+		
+		for(int i=0; i<N; ++i){
+			if(z_k.at<double>(0, i) == 1.0){
+				E.col(i) += (d_k_old - d_k_new) * x_k.at<double>(0, i);
+			}
+		}
+		d_k_new.copyTo(d_k_old);
 	}
 }
 
@@ -119,25 +124,30 @@ void BPFADictionaryLearner::sampleD(void)
 void BPFADictionaryLearner::sampleZ(void)
 {
 	cv::multiply(Z, S, X);
-	cv::Mat E = Y - D * X;
+	//cv::Mat E = Y - D * X;
 
 	for(int k=0; k<K; ++k){
 		cv::Mat x_k = X.row(k);
 		cv::Mat d_k = D.col(k);
+		cv::Mat z_k_old = Z.row(k);
 		double d_k_square = d_k.dot(d_k);
-		cv::Mat E_k = E + d_k * x_k;
-		cv::Mat dkTEk = d_k.t() * E_k;
+		cv::Mat dkTE = d_k.t() * E;
 		
-		cv::Mat sample(x_k.size(), x_k.type());
+		cv::Mat z_k_new(x_k.size(), x_k.type());
 		for(int i=0; i<N; ++i){
 			double s_ik = S.at<double>(k, i);
-			double dkTEki = dkTEk.at<double>(0, i);
+			double d_kTEk_i = dkTE.at<double>(0, i);
+			double x_ki = x_k.at<double>(0, i);
+			if(z_k_old.at<double>(0, i) == 1.0){
+				d_kTEk_i += x_ki * d_k_square;
+			}
+
 			int z_ki;
-			double exponent = -gamma_e / 2 * (s_ik * s_ik * d_k_square - 2 * s_ik * dkTEki);
-			if(exponent > 700.0){ // In this case p will be almost 1. 
+			double exponent = -gamma_e / 2 * (s_ik * s_ik * d_k_square - 2 * s_ik * d_kTEk_i);
+			if(exponent > 650.0){ // In this case p will be almost 1. 
 				z_ki = 1;
 			}
-			else if(exponent < -700.0){ // the case p will be almost 0
+			else if(exponent < -650.0){ // the case p will be almost 0
 				z_ki = 0;
 			}
 			else{
@@ -146,14 +156,20 @@ void BPFADictionaryLearner::sampleZ(void)
 				double p = p1 / (p0 + p1);
 				z_ki = boost::bernoulli_distribution<>(p)(engine);
 			}
-			sample.at<double>(0, i) = z_ki;
+			z_k_new.at<double>(0, i) = z_ki;
 		}
-		sample.copyTo(Z.row(k));
 		cv::Mat x_k_new;
-		cv::multiply(sample, S.row(k), x_k_new);
-		x_k_new.copyTo(X.row(k));
+		cv::multiply(z_k_new, S.row(k), x_k_new);
 
-		E = E_k - d_k * x_k_new;
+		//E = E_k - d_k * x_k_new;
+		for(int i=0; i<N; ++i){
+			if(z_k_old.at<double>(0, i) == 1.0 || z_k_new.at<double>(0, i) == 1.0){
+				double x_ki = x_k.at<double>(0, i) - x_k_new.at<double>(0, i);
+				E.col(i) += x_ki * d_k;
+			}
+		}
+		z_k_new.copyTo(Z.row(k));
+		x_k_new.copyTo(X.row(k));
 	}
 }
 
@@ -162,26 +178,27 @@ void BPFADictionaryLearner::sampleZ(void)
 void BPFADictionaryLearner::sampleS(void)
 {
 	cv::multiply(Z, S, X);
-	cv::Mat E = Y - D * X;
+	//cv::Mat E = Y - D * X;
 	
 	for(int k=0; k<K; ++k){
 		cv::Mat x_k = X.row(k);
 		cv::Mat d_k = D.col(k);
 		cv::Mat z_k = Z.row(k);
-		cv::Mat E_k = E + d_k * x_k;
-		cv::Mat dkTEk = d_k.t() * E_k;
 		double d_k_square = d_k.dot(d_k);
+		cv::Mat dkTE = d_k.t() * E;
 
 		double variance0 = 1.0 / gamma_s;
 		double variance1 = 1.0 / (gamma_s + gamma_e * d_k_square);
 		
-		cv::Mat sample(x_k.size(), x_k.type());
+		cv::Mat s_k_new(x_k.size(), x_k.type());
 		for(int i=0; i<N; ++i){
 			double variance;
 			double mean;
 			if(z_k.at<double>(0, i) == 1.0){
 				variance = variance1;
-				mean = gamma_e * variance * dkTEk.at<double>(0, i);
+				//double d_kTEk_i = d_k.dot(E.col(i) + d_k * x_k.at<double>(0, i));
+				double d_kTEk_i = dkTE.at<double>(0, i) + x_k.at<double>(0, i) * d_k_square;
+				mean = gamma_e * variance * d_kTEk_i;
 			}
 			// z_ik == 0
 			else{
@@ -190,14 +207,20 @@ void BPFADictionaryLearner::sampleS(void)
 			}
 
 			double s_ki = boost::normal_distribution<>(mean, sqrt(variance))(engine);
-			sample.at<double>(0, i) = s_ki;
+			s_k_new.at<double>(0, i) = s_ki;
 		}
-		sample.copyTo(S.row(k));
+		s_k_new.copyTo(S.row(k));
 		cv::Mat x_k_new;
-		cv::multiply(sample, Z.row(k), x_k_new);
+		cv::multiply(s_k_new, Z.row(k), x_k_new);
+		
+		//E += d_k * (x_k - x_k_new);
+		for(int i=0; i<N; ++i){
+			if(z_k.at<double>(0, i) == 1.0){
+				double x_ki = x_k.at<double>(0, i) - x_k_new.at<double>(0, i);
+				E.col(i) += x_ki * d_k;
+			}
+		}
 		x_k_new.copyTo(X.row(k));
-
-		E = E_k - d_k * x_k_new;
 	}
 }
 
@@ -227,7 +250,7 @@ void BPFADictionaryLearner::sampleGamma_s(void)
 
 void BPFADictionaryLearner::sampleGamma_e(void)
 {
-	cv::Mat E = Y - D * X;
+	//cv::Mat E = Y - D * X;
 	double e_mn_sqsum = E.dot(E);
 	double shape = e + M * N / 2.0;
 	double scale = 1.0 / (f + e_mn_sqsum / 2.0);
