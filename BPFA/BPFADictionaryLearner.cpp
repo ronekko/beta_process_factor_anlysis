@@ -66,6 +66,7 @@ void BPFADictionaryLearner::init(const cv::Mat &_Y, const int &_K, const int &se
 
 void BPFADictionaryLearner::train(const int iteration)
 {
+	cv::multiply(Z, S, X);
 	E = Y - D * X;
 	for(int t=0; t<iteration; ++t)
 	{
